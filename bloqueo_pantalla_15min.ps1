@@ -1,6 +1,10 @@
-# Obtener SID del usuario activo
-$username = "gonzalo"
-$sid = (New-Object System.Security.Principal.NTAccount("GDESKTOP", $username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+# Obtener usuario y dominio activo dinamicamente
+$loggedUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName
+$domain   = $loggedUser -split '\\' | Select-Object -First 1
+$username = $loggedUser -split '\\' | Select-Object -Last 1
+
+# Obtener SID
+$sid = (New-Object System.Security.Principal.NTAccount($domain, $username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
 
 # Montar HKU
 if (-not (Test-Path "HKU:")) { New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS | Out-Null }
