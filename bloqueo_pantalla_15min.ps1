@@ -1,21 +1,23 @@
-# Obtener usuario y dominio activo dinamicamente
-$loggedUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName
-$domain   = $loggedUser -split '\\' | Select-Object -First 1
-$username = $loggedUser -split '\\' | Select-Object -Last 1
+# Bloqueo de pantalla, suspension e hibernacion a 15 minutos
 
-# Obtener SID
-$sid = (New-Object System.Security.Principal.NTAccount($domain, $username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
+# powercfg para la UI
+$guid = ((powercfg /getactivescheme) -split '\s+')[3]
+powercfg /setacvalueindex $guid SUB_VIDEO VIDEOIDLE      900
+powercfg /setdcvalueindex $guid SUB_VIDEO VIDEOIDLE      900
+powercfg /setacvalueindex $guid SUB_SLEEP STANDBYIDLE    900
+powercfg /setdcvalueindex $guid SUB_SLEEP STANDBYIDLE    900
+powercfg /setacvalueindex $guid SUB_SLEEP HIBERNATEIDLE  900
+powercfg /setdcvalueindex $guid SUB_SLEEP HIBERNATEIDLE  900
+powercfg /setactive $guid
 
-# Montar HKU
+# Screensaver con contrasena via registro del usuario activo
 if (-not (Test-Path "HKU:")) { New-PSDrive -Name HKU -PSProvider Registry -Root HKEY_USERS | Out-Null }
 
-# Escribir en registro del usuario activo
-$desktopPath = "HKU:\$sid\Control Panel\Desktop"
-Set-ItemProperty $desktopPath -Name "ScreenSaveActive"    -Value "1"   -Type String
-Set-ItemProperty $desktopPath -Name "ScreenSaverIsSecure" -Value "1"   -Type String
-Set-ItemProperty $desktopPath -Name "ScreenSaveTimeOut"   -Value "900" -Type String
+$loggedUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName
+$domain     = $loggedUser -split '\\' | Select-Object -First 1
+$username   = $loggedUser -split '\\' | Select-Object -Last 1
+$sid        = (New-Object System.Security.Principal.NTAccount($domain, $username)).Translate([System.Security.Principal.SecurityIdentifier]).Value
 
-# HKLM accesible desde SYSTEM
-$sysPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
-if (-not (Test-Path $sysPath)) { New-Item -Path $sysPath -Force | Out-Null }
-Set-ItemProperty $sysPath -Name "InactivityTimeoutSecs" -Value 900 -Type DWord
+Set-ItemProperty "HKU:\$sid\Control Panel\Desktop" -Name "ScreenSaveTimeOut"   -Value "900" -Type String
+Set-ItemProperty "HKU:\$sid\Control Panel\Desktop" -Name "ScreenSaveActive"    -Value "1"   -Type String
+Set-ItemProperty "HKU:\$sid\Control Panel\Desktop" -Name "ScreenSaverIsSecure" -Value "1"   -Type String
