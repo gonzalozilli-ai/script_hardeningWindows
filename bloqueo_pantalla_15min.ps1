@@ -7,3 +7,16 @@ Set-ItemProperty $desktopPath -Name "ScreenSaveTimeOut"   -Value "900" -Type Str
 $sysPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"
 if (-not (Test-Path $sysPath)) { New-Item -Path $sysPath -Force | Out-Null }
 Set-ItemProperty $sysPath -Name "InactivityTimeoutSecs" -Value 900 -Type DWord
+
+# Hardening - Bloqueo de pantalla, suspension e hibernacion a 15 minutos
+
+$guid = ((powercfg /getactivescheme) -split '\s+')[3]
+
+powercfg /setacvalueindex $guid SUB_VIDEO VIDEOIDLE     900
+powercfg /setdcvalueindex $guid SUB_VIDEO VIDEOIDLE     900
+powercfg /setacvalueindex $guid SUB_SLEEP STANDBYIDLE   900
+powercfg /setdcvalueindex $guid SUB_SLEEP STANDBYIDLE   900
+powercfg /setacvalueindex $guid SUB_SLEEP HIBERNATEIDLE 900
+powercfg /setdcvalueindex $guid SUB_SLEEP HIBERNATEIDLE 900
+
+powercfg /setactive $guid
